@@ -59,8 +59,8 @@
     </build>
  	
     <modules>
-    	<module>crow-ptop-test</module>
-    	
+    	<module>crow-ptop-test</module>   	
     	<module>crow-ptop-blockchain-shima</module>
+    	<module>crow-ptop-blockchain-core</module>
     </modules>
 </project>

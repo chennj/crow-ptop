@@ -2,10 +2,45 @@ package org.crow.ptop.blockchain.crypto.model.account;
 
 import java.io.Serializable;
 
-public class StringAccount implements Serializable{
+/**
+ * 字符串格式的数字货币的账户
+ *
+ * 通常情况下，数字货币的账户由一个非对称秘钥对（私钥、公钥）、一个地址构成。
+ * 非对称秘钥由私钥、公钥构成。私钥可以推导出公钥。公钥不能逆推出私钥。
+ * 公钥可以推导出数字货币的地址。地址不能逆推出公钥。
+ * 
+ * @author chenn
+ *
+ */
+public class StringAccount implements Serializable {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
 	private StringPrivateKey stringPrivateKey;
     private StringPublicKey stringPublicKey;
     private StringAddress stringAddress;
+    
+	public StringPrivateKey getStringPrivateKey() {
+		return stringPrivateKey;
+	}
+	public void setStringPrivateKey(StringPrivateKey stringPrivateKey) {
+		this.stringPrivateKey = stringPrivateKey;
+	}
+	public StringPublicKey getStringPublicKey() {
+		return stringPublicKey;
+	}
+	public void setStringPublicKey(StringPublicKey stringPublicKey) {
+		this.stringPublicKey = stringPublicKey;
+	}
+	public StringAddress getStringAddress() {
+		return stringAddress;
+	}
+	public void setStringAddress(StringAddress stringAddress) {
+		this.stringAddress = stringAddress;
+	}
 
+    
 }

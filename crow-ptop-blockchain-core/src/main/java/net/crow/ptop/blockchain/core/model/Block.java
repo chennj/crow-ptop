@@ -15,6 +15,11 @@ import net.crow.ptop.blockchain.core.model.transaction.Transaction;
 public class Block implements Serializable {
 
     /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
+	/**
      * 区块产生的时间戳
      * 为防止作恶。区块的时间戳一定比前一个区块的时间戳大，一定比当前时间小，一定大于0。
      * 为什么需要时间戳这个字段？
@@ -44,7 +49,7 @@ public class Block implements Serializable {
     private String merkleRoot;
     /**
      * 共识值
-     * 区块链是个分布式账本，每个人都拥有记账的权利。如果每个人都去记账，账本就会特别达成一致。
+     * 区块链是个分布式账本，每个人都拥有记账的权利。如果每个人都去记账，账本就会很难达成一致。
      * 一般情况下，想要记账请解答一个难题，从而减少每个人获取记账权利的成功率。
      * 而这个共识值就是难题的答案。难题的答案可能并不是唯一，一般情况下，很难获取答案。
      */
@@ -94,6 +99,94 @@ public class Block implements Serializable {
      * 冗余字段
      */
     private BigInteger endTransactionSequenceNumberInBlockChain;
+
+	public long getTimestamp() {
+		return timestamp;
+	}
+
+	public void setTimestamp(long timestamp) {
+		this.timestamp = timestamp;
+	}
+
+	public String getPreviousHash() {
+		return previousHash;
+	}
+
+	public void setPreviousHash(String previousHash) {
+		this.previousHash = previousHash;
+	}
+
+	public BigInteger getHeight() {
+		return height;
+	}
+
+	public void setHeight(BigInteger height) {
+		this.height = height;
+	}
+
+	public List<Transaction> getTransactions() {
+		return transactions;
+	}
+
+	public void setTransactions(List<Transaction> transactions) {
+		this.transactions = transactions;
+	}
+
+	public String getMerkleRoot() {
+		return merkleRoot;
+	}
+
+	public void setMerkleRoot(String merkleRoot) {
+		this.merkleRoot = merkleRoot;
+	}
+
+	public String getConsensusValue() {
+		return consensusValue;
+	}
+
+	public void setConsensusValue(String consensusValue) {
+		this.consensusValue = consensusValue;
+	}
+
+	public String getHash() {
+		return hash;
+	}
+
+	public void setHash(String hash) {
+		this.hash = hash;
+	}
+
+	public ConsensusVariableHolder getConsensusVariableHolder() {
+		return consensusVariableHolder;
+	}
+
+	public void setConsensusVariableHolder(ConsensusVariableHolder consensusVariableHolder) {
+		this.consensusVariableHolder = consensusVariableHolder;
+	}
+
+	public BigInteger getTransactionQuantity() {
+		return transactionQuantity;
+	}
+
+	public void setTransactionQuantity(BigInteger transactionQuantity) {
+		this.transactionQuantity = transactionQuantity;
+	}
+
+	public BigInteger getStartTransactionSequenceNumberInBlockChain() {
+		return startTransactionSequenceNumberInBlockChain;
+	}
+
+	public void setStartTransactionSequenceNumberInBlockChain(BigInteger startTransactionSequenceNumberInBlockChain) {
+		this.startTransactionSequenceNumberInBlockChain = startTransactionSequenceNumberInBlockChain;
+	}
+
+	public BigInteger getEndTransactionSequenceNumberInBlockChain() {
+		return endTransactionSequenceNumberInBlockChain;
+	}
+
+	public void setEndTransactionSequenceNumberInBlockChain(BigInteger endTransactionSequenceNumberInBlockChain) {
+		this.endTransactionSequenceNumberInBlockChain = endTransactionSequenceNumberInBlockChain;
+	}
 
     
 }

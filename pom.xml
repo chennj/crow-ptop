@@ -62,5 +62,7 @@
     	<module>crow-ptop-test</module>   	
     	<module>crow-ptop-blockchain-shima</module>
     	<module>crow-ptop-blockchain-core</module>
+    	<module>crow-ptop-blockchain-node-transport-dto</module>
+    	<module>crow-ptop-blockchain-crypto</module>
     </modules>
 </project>

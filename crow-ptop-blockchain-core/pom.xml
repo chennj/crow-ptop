@@ -23,7 +23,13 @@
             <version>${project.version}</version>
         </dependency>
 	
-		<!-- 类redis 有点缓存持久一体化 -->
+        <dependency>
+            <groupId>net.crow</groupId>
+            <artifactId>crow-ptop-blockchain-crypto</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+		<!-- 类redis 优点缓存持久一体化 -->
         <dependency>
             <groupId>org.iq80.leveldb</groupId>
             <artifactId>leveldb</artifactId>

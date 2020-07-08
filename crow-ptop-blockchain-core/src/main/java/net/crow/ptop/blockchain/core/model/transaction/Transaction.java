@@ -7,6 +7,11 @@ import java.util.List;
 public class Transaction implements Serializable{
 
     /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	/**
      * 交易时间戳
      * 这个时间戳是由用户生成的，用户机器的时间戳可能超前或是滞后真正的时间戳，
      * 你无法强制要求用户的机器的时间戳是正确的，因此在使用这个时间戳时必须要考虑这可能并不是个正确的时间戳。

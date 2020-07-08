@@ -1,6 +1,7 @@
 package net.crow.ptop.blockchain.core.model.transaction;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.List;
 
 import net.crow.ptop.blockchain.core.model.script.ScriptKey;
@@ -20,7 +21,7 @@ public class TransactionInput implements Serializable{
 	/**
 	 * 交易的输入是至少一笔交易的输出
 	 */
-	private List<TransactionOutput> unspendTransactionOutput;
+	private TransactionOutput unspendTransactionOutput;
 	
     /**
      * 脚本钥匙
@@ -33,12 +34,12 @@ public class TransactionInput implements Serializable{
      * 假如新组装的交易先于老交易被区块链网络接受，这就相当于恶意用户花了别人的交易输出。
      */
 	private ScriptKey scriptKey;
-
-	public List<TransactionOutput> getUnspendTransactionOutput() {
+	
+	public TransactionOutput getUnspendTransactionOutput() {
 		return unspendTransactionOutput;
 	}
 
-	public void setUnspendTransactionOutput(List<TransactionOutput> unspendTransactionOutput) {
+	public void setUnspendTransactionOutput(TransactionOutput unspendTransactionOutput) {
 		this.unspendTransactionOutput = unspendTransactionOutput;
 	}
 

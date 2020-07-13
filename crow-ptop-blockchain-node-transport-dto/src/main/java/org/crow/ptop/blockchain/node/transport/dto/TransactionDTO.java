@@ -3,6 +3,11 @@ package org.crow.ptop.blockchain.node.transport.dto;
 import java.io.Serializable;
 import java.util.List;
 
+/**
+ * 交易
+ * @author chenn
+ *
+ */
 public class TransactionDTO implements Serializable{
 
 	/**

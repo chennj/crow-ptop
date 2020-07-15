@@ -1,0 +1,232 @@
+package net.crow.ptop.blockchain.core.impl;
+
+import java.math.BigInteger;
+
+import org.crow.ptop.blockchain.node.transport.dto.BlockDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import net.crow.ptop.blockchain.core.BlockChainDataBase;
+import net.crow.ptop.blockchain.core.Synchronizer;
+import net.crow.ptop.blockchain.core.SynchronizerDataBase;
+import net.crow.ptop.blockchain.core.config.GlobalConfig;
+import net.crow.ptop.blockchain.core.model.Block;
+import net.crow.ptop.blockchain.core.tools.NodeTransportDtoTool;
+import net.crow.ptop.blockchain.core.utils.BigIntegerUtil;
+import net.crow.ptop.blockchain.core.utils.StringUtil;
+
+public class SynchronizerDefaultImpl extends Synchronizer {
+
+	private Logger logger = LoggerFactory.getLogger(SynchronizerDefaultImpl.class);
+	
+	/**
+	 * 本节点的区块链，同步器的目标就是让本节点区块链增长长度。
+	 */
+	private BlockChainDataBase targetBlockChainDataBase;
+	
+    /**
+     * 一个临时的区块链
+     * 同步器实现的机制：
+     * ①将本节点的区块链的数据复制进临时区块链
+     * ②发现一个可以同步的节点，将这个节点的数据同步至临时区块链
+     * ③将临时区块链的数据同步至本节点区块链
+     */
+    private BlockChainDataBase temporaryBlockChainDataBase;
+    
+    /**
+     * 同步开关:默认同步其它节点区块链数据
+     */
+    private boolean synchronizeOption = true;
+	
+    public SynchronizerDefaultImpl(BlockChainDataBase targetBlockChainDataBase,
+            BlockChainDataBase temporaryBlockChainDataBase,
+            SynchronizerDataBase synchronizerDataBase) {
+		super(synchronizerDataBase);
+		this.targetBlockChainDataBase = targetBlockChainDataBase;
+		this.temporaryBlockChainDataBase = temporaryBlockChainDataBase;
+	}
+
+	@Override
+	public void start() throws Exception {
+		while (true){
+            Thread.sleep(10);
+            if(!synchronizeOption){
+                continue;
+            }
+            String availableSynchronizeNodeId = synchronizerDataBase.getDataTransferFinishFlagNodeId();
+            if(availableSynchronizeNodeId == null){
+                continue;
+            }
+            synchronizeBlockChainNode(availableSynchronizeNodeId);
+        }
+	}
+
+	@Override
+	public boolean isActive() {
+		return synchronizeOption;
+	}
+
+	@Override
+	public void active() {
+		synchronizeOption = true;
+	}
+
+	@Override
+	public void deactive() {
+		synchronizeOption = false;
+	}
+
+	/**
+	 * 同步区块链节点
+	 * @param availableSynchronizeNodeId
+	 * @throws Exception
+	 */
+	private void synchronizeBlockChainNode(String availableSynchronizeNodeId) throws Exception {
+        if(!synchronizeOption){
+            return;
+        }
+        copyTargetBlockChainDataBaseToTemporaryBlockChainDataBase(targetBlockChainDataBase, temporaryBlockChainDataBase);
+        boolean hasDataTransferFinishFlag = synchronizerDataBase.hasDataTransferFinishFlag(availableSynchronizeNodeId);
+        if(!hasDataTransferFinishFlag){
+            synchronizerDataBase.clear(availableSynchronizeNodeId);
+            return;
+        }
+
+        BigInteger maxBlockHeight = synchronizerDataBase.getMaxBlockHeight(availableSynchronizeNodeId);
+        if(maxBlockHeight == null){
+            return;
+        }
+        BigInteger targetBlockChainHeight = targetBlockChainDataBase.obtainBlockChainHeight();
+        if(!BigIntegerUtil.isEquals(targetBlockChainHeight,BigInteger.valueOf(0)) && BigIntegerUtil.isGreatEqualThan(targetBlockChainHeight,maxBlockHeight)){
+            synchronizerDataBase.clear(availableSynchronizeNodeId);
+            return;
+        }
+
+        BigInteger minBlockHeight = synchronizerDataBase.getMinBlockHeight(availableSynchronizeNodeId);
+        BlockDTO blockDTO = synchronizerDataBase.getBlockDto(availableSynchronizeNodeId,minBlockHeight);
+        if(blockDTO != null){
+            temporaryBlockChainDataBase.removeBlocksUtilBlockHeightLessThan(blockDTO.getHeight());
+            while(blockDTO != null){
+                Block block = NodeTransportDtoTool.classCast(temporaryBlockChainDataBase,blockDTO);
+                boolean isAddBlockToBlockChainSuccess = temporaryBlockChainDataBase.addBlock(block);
+                if(!isAddBlockToBlockChainSuccess){
+                    break;
+                }
+                minBlockHeight = minBlockHeight.add(BigInteger.ONE);
+                blockDTO = synchronizerDataBase.getBlockDto(availableSynchronizeNodeId,minBlockHeight);
+            }
+        }
+        promoteTargetBlockChainDataBase(targetBlockChainDataBase, temporaryBlockChainDataBase);
+        synchronizerDataBase.clear(availableSynchronizeNodeId);
+    }
+	
+	/**
+     * 若targetBlockChainDataBase的高度小于blockChainDataBaseTemporary的高度，
+     * 则targetBlockChainDataBase同步blockChainDataBaseTemporary的数据。
+     */
+    private void promoteTargetBlockChainDataBase(BlockChainDataBase targetBlockChainDataBase,
+                                                   BlockChainDataBase temporaryBlockChainDataBase) throws Exception {
+        Block targetBlockChainTailBlock = targetBlockChainDataBase.findTailNoTransactionBlock();
+        Block temporaryBlockChainTailBlock = temporaryBlockChainDataBase.findTailNoTransactionBlock() ;
+        //不需要调整
+        if(temporaryBlockChainTailBlock == null){
+            return;
+        }
+        if(targetBlockChainTailBlock == null){
+            Block block = temporaryBlockChainDataBase.findBlockByBlockHeight(GlobalConfig.GenesisBlockConstant.FIRST_BLOCK_HEIGHT);
+            boolean isAddBlockToBlockChainSuccess = targetBlockChainDataBase.addBlock(block);
+            if(!isAddBlockToBlockChainSuccess){
+                return;
+            }
+        }
+        if(BigIntegerUtil.isGreatEqualThan(targetBlockChainTailBlock.getHeight(),temporaryBlockChainTailBlock.getHeight())){
+            return;
+        }
+        //未分叉区块高度
+        BigInteger noForkBlockHeight = targetBlockChainTailBlock.getHeight();
+        while (true){
+            if(BigIntegerUtil.isLessEqualThan(noForkBlockHeight,BigInteger.valueOf(0))){
+                break;
+            }
+            Block targetBlock = targetBlockChainDataBase.findNoTransactionBlockByBlockHeight(noForkBlockHeight);
+            if(targetBlock == null){
+                break;
+            }
+            Block temporaryBlock = temporaryBlockChainDataBase.findNoTransactionBlockByBlockHeight(noForkBlockHeight);
+            if(targetBlock.getHash().equals(temporaryBlock.getHash()) && targetBlock.getPreviousHash().equals(temporaryBlock.getPreviousHash())){
+                break;
+            }
+            targetBlockChainDataBase.removeTailBlock();
+            noForkBlockHeight = targetBlockChainDataBase.obtainBlockChainHeight();
+        }
+
+        BigInteger targetBlockChainHeight = targetBlockChainDataBase.obtainBlockChainHeight() ;
+        while(true){
+            targetBlockChainHeight = targetBlockChainHeight.add(BigInteger.valueOf(1));
+            Block currentBlock = temporaryBlockChainDataBase.findBlockByBlockHeight(targetBlockChainHeight) ;
+            if(currentBlock == null){
+                break;
+            }
+            boolean isAddBlockToBlockChainSuccess = targetBlockChainDataBase.addBlock(currentBlock);
+            if(!isAddBlockToBlockChainSuccess){
+                break;
+            }
+        }
+    }
+    
+    /**
+     * 使得temporaryBlockChainDataBase和targetBlockChainDataBase的区块链数据一模一样
+     */
+    private void copyTargetBlockChainDataBaseToTemporaryBlockChainDataBase(BlockChainDataBase targetBlockChainDataBase,
+                                 BlockChainDataBase temporaryBlockChainDataBase) throws Exception {
+        Block targetBlockChainTailBlock = targetBlockChainDataBase.findTailNoTransactionBlock() ;
+        Block temporaryBlockChainTailBlock = temporaryBlockChainDataBase.findTailNoTransactionBlock() ;
+        if(targetBlockChainTailBlock == null){
+            //清空temporary
+            temporaryBlockChainDataBase.removeBlocksUtilBlockHeightLessThan(BigInteger.ONE);
+            return;
+        }
+        //删除Temporary区块链直到尚未分叉位置停止
+        while(true){
+            if(temporaryBlockChainTailBlock == null){
+                break;
+            }
+            Block targetBlockChainBlock = targetBlockChainDataBase.findNoTransactionBlockByBlockHeight(temporaryBlockChainTailBlock.getHeight());
+            if(isBlockEqual(targetBlockChainBlock,temporaryBlockChainTailBlock)){
+                break;
+            }
+            temporaryBlockChainDataBase.removeTailBlock();
+            temporaryBlockChainTailBlock = temporaryBlockChainDataBase.findTailNoTransactionBlock();
+        }
+        //复制target数据至temporary
+        BigInteger temporaryBlockChainHeight = temporaryBlockChainDataBase.obtainBlockChainHeight();
+        while(true){
+            temporaryBlockChainHeight = temporaryBlockChainHeight.add(BigInteger.valueOf(1));
+            Block currentBlock = targetBlockChainDataBase.findBlockByBlockHeight(temporaryBlockChainHeight) ;
+            if(currentBlock == null){
+                break;
+            }
+            boolean isAddBlockToBlockChainSuccess = temporaryBlockChainDataBase.addBlock(currentBlock);
+            if(!isAddBlockToBlockChainSuccess){
+                return;
+            }
+        }
+    }
+    private boolean isBlockEqual(Block block1, Block block2) {
+        if(block1 == null && block2 == null){
+            return true;
+        }
+        if(block1 == null || block2 == null){
+            return false;
+        }
+        //不严格校验,这里没有具体校验每一笔交易
+        if(StringUtil.isEquals(block1.getPreviousHash(),block2.getPreviousHash())
+                && BigIntegerUtil.isEquals(block1.getHeight(),block2.getHeight())
+                && StringUtil.isEquals(block1.getMerkleRoot(),block2.getMerkleRoot())
+                && StringUtil.isEquals(block1.getConsensusValue(),block2.getConsensusValue())
+                && StringUtil.isEquals(block1.getHash(),block2.getHash())){
+            return true;
+        }
+        return false;
+    }
+}

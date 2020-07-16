@@ -19,5 +19,10 @@
 	    <bcprov.version>1.59</bcprov.version>
 	</properties>
 	<dependencies>
+        <dependency>
+            <groupId>net.crow</groupId>
+            <artifactId>crow-ptop-blockchain-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 	</dependencies>
 </project>

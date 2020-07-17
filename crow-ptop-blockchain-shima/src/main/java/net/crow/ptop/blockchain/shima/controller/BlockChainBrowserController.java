@@ -1,5 +1,6 @@
 package net.crow.ptop.blockchain.shima.controller;
 
+import java.math.BigInteger;
 import java.util.List;
 
 import org.crow.ptop.blockchain.crypto.AccountUtil;
@@ -16,22 +17,41 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.base.Strings;
 
+import net.crow.ptop.blockchain.core.config.GlobalConfig;
+import net.crow.ptop.blockchain.core.model.Block;
 import net.crow.ptop.blockchain.core.model.transaction.Transaction;
+import net.crow.ptop.blockchain.core.model.transaction.TransactionOutput;
 import net.crow.ptop.blockchain.core.utils.NumberUtil;
+import net.crow.ptop.blockchain.shima.dto.blockchainbranch.BlockchainBranchBlockDto;
 import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.BlockChainApiRoute;
 import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.NormalTransactionDto;
 import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.request.GenerateWalletRequest;
+import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.request.QueryBlockDtoByBlockHashRequest;
+import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.request.QueryBlockDtoByBlockHeightRequest;
+import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.request.QueryBlockchainBranchRequest;
 import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.request.QueryMiningTransactionByTransactionHashRequest;
+import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.request.QueryMiningTransactionListRequest;
 import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.request.QueryTransactionByTransactionHashRequest;
 import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.request.QueryTransactionByTransactionHeightRequest;
+import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.request.QueryTxosByAddressRequest;
+import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.request.QueryUtxosByAddressRequest;
 import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.request.SubmitNormalTransactionRequest;
 import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.response.GenerateWalletResponse;
+import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.response.QueryBlockDtoByBlockHashResponse;
+import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.response.QueryBlockDtoByBlockHeightResponse;
+import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.response.QueryBlockchainBranchResponse;
 import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.response.QueryMiningTransactionByTransactionHashResponse;
+import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.response.QueryMiningTransactionListResponse;
 import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.response.QueryTransactionByTransactionHashResponse;
 import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.response.QueryTransactionByTransactionHeightResponse;
+import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.response.QueryTxosByAddressResponse;
+import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.response.QueryUtxosByAddressResponse;
 import net.crow.ptop.blockchain.shima.dto.blockchainbrowser.response.SubmitNormalTransactionResponse;
 import net.crow.ptop.blockchain.shima.dto.common.ServiceResult;
 import net.crow.ptop.blockchain.shima.dto.common.page.PageCondition;
+import net.crow.ptop.blockchain.shima.dto.nodeserver.Node;
+import net.crow.ptop.blockchain.shima.dto.nodeserver.request.PingRequest;
+import net.crow.ptop.blockchain.shima.dto.nodeserver.response.PingResponse;
 import net.crow.ptop.blockchain.shima.dto.wallet.WalletDTO;
 import net.crow.ptop.blockchain.shima.service.BlockChainBranchService;
 import net.crow.ptop.blockchain.shima.service.BlockChainCoreService;
@@ -180,6 +200,147 @@ public class BlockChainBrowserController {
             return ServiceResult.createSuccessServiceResult("根据交易哈希查询挖矿中交易成功",response);
         } catch (Exception e){
             String message = "根据交易哈希查询挖矿中交易失败";
+            logger.error(message,e);
+            return ServiceResult.createFailServiceResult(message);
+        }
+    }
+    
+    /**
+     * 根据地址获取未花费交易输出
+     */
+    @ResponseBody
+    @RequestMapping(value = BlockChainApiRoute.QUERY_UTXOS_BY_ADDRESS,method={RequestMethod.GET,RequestMethod.POST})
+    public ServiceResult<QueryUtxosByAddressResponse> queryUtxosByAddress(@RequestBody QueryUtxosByAddressRequest request){
+        try {
+            List<TransactionOutput> utxoList = blockChainCoreService.queryUtxoListByAddress(request);
+
+            QueryUtxosByAddressResponse response = new QueryUtxosByAddressResponse();
+            response.setUtxos(utxoList);
+            return ServiceResult.createSuccessServiceResult("根据地址获取未花费交易输出成功",response);
+        } catch (Exception e){
+            String message = "根据地址获取未花费交易输出失败";
+            logger.error(message,e);
+            return ServiceResult.createFailServiceResult(message);
+        }
+    }
+
+    /**
+     * 根据地址获取交易输出
+     */
+    @ResponseBody
+    @RequestMapping(value = BlockChainApiRoute.QUERY_TXOS_BY_ADDRESS,method={RequestMethod.GET,RequestMethod.POST})
+    public ServiceResult<QueryTxosByAddressResponse> queryTxosByAddress(@RequestBody QueryTxosByAddressRequest request){
+        try {
+            List<TransactionOutput> txoList = blockChainCoreService.queryTxoListByAddress(request);
+            if(txoList == null){
+                return ServiceResult.createFailServiceResult(String.format("地址[%s]没有对应的交易输出列表。",request.getAddress()));
+            }
+            QueryTxosByAddressResponse response = new QueryTxosByAddressResponse();
+            response.setTxos(txoList);
+            return ServiceResult.createSuccessServiceResult("[根据地址获取交易输出]成功",response);
+        } catch (Exception e){
+            String message = "[根据地址获取交易输出]失败";
+            logger.error(message,e);
+            return ServiceResult.createFailServiceResult(message);
+        }
+    }
+    
+    /**
+     * Ping节点
+     */
+    @ResponseBody
+    @RequestMapping(value = BlockChainApiRoute.PING,method={RequestMethod.GET,RequestMethod.POST})
+    public ServiceResult<PingResponse> ping(@RequestBody PingRequest request){
+        try {
+            List<Node> nodeList = nodeService.queryAllNoForkNodeList();
+            BigInteger blockChainHeight = blockChainCoreService.queryBlockChainHeight();
+            PingResponse response = new PingResponse();
+            response.setNodeList(nodeList);
+            response.setBlockChainHeight(blockChainHeight);
+            response.setBlockChainId(GlobalConfig.BLOCK_CHAIN_ID);
+            response.setBlockChainVersion(GlobalConfig.SystemVersionConstant.obtainVersion());
+            return ServiceResult.createSuccessServiceResult("查询节点信息成功",response);
+        } catch (Exception e){
+            String message = "查询节点信息失败";
+            logger.error(message,e);
+            return ServiceResult.createSuccessServiceResult(message,null);
+        }
+    }
+    
+    /**
+     * 查询挖矿中的交易
+     */
+    @ResponseBody
+    @RequestMapping(value = BlockChainApiRoute.QUERY_MINING_TRANSACTION_LIST,method={RequestMethod.GET,RequestMethod.POST})
+    public ServiceResult<QueryMiningTransactionListResponse> queryMiningTransactionList(@RequestBody QueryMiningTransactionListRequest request){
+        try {
+            List<TransactionDTO> transactionDtoList = blockChainCoreService.queryMiningTransactionList(request);
+            QueryMiningTransactionListResponse response = new QueryMiningTransactionListResponse();
+            response.setTransactionDtoList(transactionDtoList);
+            return ServiceResult.createSuccessServiceResult("查询挖矿中的交易成功",response);
+        } catch (Exception e){
+            String message = "查询挖矿中的交易失败";
+            logger.error(message,e);
+            return ServiceResult.createSuccessServiceResult(message,null);
+        }
+    }
+    
+    /**
+     * 根据区块高度查询区块
+     */
+    @ResponseBody
+    @RequestMapping(value = BlockChainApiRoute.QUERY_BLOCKDTO_BY_BLOCK_HEIGHT,method={RequestMethod.GET,RequestMethod.POST})
+    public ServiceResult<QueryBlockDtoByBlockHeightResponse> queryBlockDtoByBlockHeight(@RequestBody QueryBlockDtoByBlockHeightRequest request){
+        try {
+            Block block = blockChainCoreService.queryNoTransactionBlockDtoByBlockHeight(request.getBlockHeight());
+            if(block == null){
+                return ServiceResult.createFailServiceResult(String.format("区块链中不存在区块高度[%d]，请检查输入高度。",request.getBlockHeight()));
+            }
+            QueryBlockDtoByBlockHeightResponse response = new QueryBlockDtoByBlockHeightResponse();
+            response.setBlock(block);
+            return ServiceResult.createSuccessServiceResult("成功获取区块",response);
+        } catch (Exception e){
+            String message = "查询获取失败";
+            logger.error(message,e);
+            return ServiceResult.createFailServiceResult(message);
+        }
+    }
+    
+    /**
+     * 根据区块哈希查询区块
+     */
+    @ResponseBody
+    @RequestMapping(value = BlockChainApiRoute.QUERY_BLOCKDTO_BY_BLOCK_HASH,method={RequestMethod.GET,RequestMethod.POST})
+    public ServiceResult<QueryBlockDtoByBlockHashResponse> queryBlockDtoByBlockHash(@RequestBody QueryBlockDtoByBlockHashRequest request){
+        try {
+            Block block = blockChainCoreService.queryNoTransactionBlockDtoByBlockHash(request.getBlockHash());
+            if(block == null){
+                return ServiceResult.createFailServiceResult(String.format("区块链中不存在区块哈希[%d]，请检查输入高度。",request.getBlockHash()));
+            }
+            QueryBlockDtoByBlockHashResponse response = new QueryBlockDtoByBlockHashResponse();
+            response.setBlock(block);
+            return ServiceResult.createSuccessServiceResult("[根据区块哈希查询区块]成功",response);
+        } catch (Exception e){
+            String message = "[根据区块哈希查询区块]失败";
+            logger.error(message,e);
+            return ServiceResult.createFailServiceResult(message);
+        }
+    }
+    
+    /**
+     * 获取当前区块链分支
+     */
+    @ResponseBody
+    @RequestMapping(value = BlockChainApiRoute.QUERY_BLOCKCHAINBRANCH,method={RequestMethod.GET,RequestMethod.POST})
+    public ServiceResult<QueryBlockchainBranchResponse> queryBlockchainBranch(@RequestBody QueryBlockchainBranchRequest request){
+        try {
+            List<BlockchainBranchBlockDto> blockList = blockChainBranchService.queryBlockchainBranch();
+
+            QueryBlockchainBranchResponse response = new QueryBlockchainBranchResponse();
+            response.setBlockList(blockList);
+            return ServiceResult.createSuccessServiceResult("成功获取当前区块链分支",response);
+        } catch (Exception e){
+            String message = "获取当前区块链分支失败";
             logger.error(message,e);
             return ServiceResult.createFailServiceResult(message);
         }

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
-<mapper namespace="com.xingkaichun.helloworldblockchain.node.dao.BlockChainBranchDao" >
+<mapper namespace="net.crow.ptop.blockchain.shima.dao.BlockChainBranchDao" >
 
-    <resultMap id="BaseResultMap" type="com.xingkaichun.helloworldblockchain.node.model.BlockchainBranchBlockEntity" >
+    <resultMap id="BaseResultMap" type="net.crow.ptop.blockchain.shima.entity.BlockchainBranchBlockEntity" >
         <id column="blockHeight" property="blockHeight" jdbcType="INTEGER" />
         <result column="blockHash" property="blockHash" jdbcType="VARCHAR" />
     </resultMap>
@@ -19,7 +19,7 @@
         delete from BlockchainBranch
     </delete>
 
-    <insert id="add" parameterType="com.xingkaichun.helloworldblockchain.node.model.BlockchainBranchBlockEntity">
+    <insert id="add" parameterType="net.crow.ptop.blockchain.shima.entity.BlockchainBranchBlockEntity">
         INSERT INTO BlockchainBranch (blockHeight, blockHash)
         VALUES (#{blockHeight,jdbcType=INTEGER}, #{blockHash,jdbcType=VARCHAR})
     </insert>

@@ -15,7 +15,7 @@ public class GlobalConfig {
     //区块链的链ID
     public final static String BLOCK_CHAIN_ID = "0001";
     //区块链网络中的种子节点
-    public final static List<String> SEED_NODE_LIST = Arrays.asList("139.9.125.122:8444","119.3.57.171:8444");
+    public final static List<String> SEED_NODE_LIST = Arrays.asList("127.0.0.1:8444");//Arrays.asList("139.9.125.122:8444","119.3.57.171:8444");
 
 
     /**

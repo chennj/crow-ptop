@@ -1,0 +1,4 @@
+由于您是第一次启动系统，系统自动为您分配了矿工钱包地址。
+钱包私钥是[00cba9d5c35b2d81ebcdc0725111ea1e7707c01089e7473b89ded3a2efbcd92eca]
+钱包地址是[1JXgucugNAK9t4GkDzdNKbsXCFiYVaFow7]
+为保安全，请另在其它地方妥善保存您的矿工钱包私钥、公钥、地址，并删除此文件。

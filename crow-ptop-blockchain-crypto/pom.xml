@@ -14,7 +14,7 @@
 	
 	<properties>
 	  	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	  	<bcprov.version>1.59</bcprov.version>
+	  	<bcprov.version>1.67</bcprov.version>
 	</properties>
 	
 	<dependencies>
